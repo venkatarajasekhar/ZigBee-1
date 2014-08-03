@@ -1,0 +1,5 @@
+*.dep
+CollectorEB/*
+SensorEB/*
+settings/*
+
