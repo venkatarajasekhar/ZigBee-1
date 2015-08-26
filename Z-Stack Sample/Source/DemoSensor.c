@@ -24,7 +24,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED â€œAS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -80,7 +80,13 @@
 #define HAL_ADC_DEC_512     0x30    /* Decimate by 512 : 14-bit resolution */
 #define HAL_ADC_CHN_VDD3    0x0f    /* Input channel: VDD/3 */
 #define HAL_ADC_CHN_TEMP    0x0e    /* Temperature sensor */
+  /* Assume ADC = 1480 at 25C and ADC = 4/C */
+  #define VOLTAGE_AT_TEMP_25        1480
+  #define TEMP_COEFFICIENT          4
+
 #endif // HAL_MCU_CC2530
+
+
 
 /******************************************************************************
  * TYPEDEFS
@@ -423,7 +429,8 @@ void zb_ReceiveDataIndication( uint16 source, uint16 command, uint16 len, uint8 
 #ifdef SYS_DEBUG_SH
     HalLedSet ( HAL_LED_4, HAL_LED_MODE_TOGGLE );
 #ifdef SYS_DEBUG_RELAY
-    if(1 == *pData)    //0:on
+    //if(1 == *pData)    //0:on
+    if(*pData == 1) 
     {
       st( P0_5 = !1; );
     }
@@ -529,10 +536,7 @@ static int8 readTemp(void)
    * See the datasheet for the appropriate chip for more details
    * also, the math below may not be very accurate
    */
-    /* Assume ADC = 1480 at 25C and ADC = 4/C */
-  #define VOLTAGE_AT_TEMP_25        1480
-  #define TEMP_COEFFICIENT          4
-
+  
   // Calibrate for 22C the first time the temp sensor is read.
   // This will assume that the demo is started up in temperature of 22C
   if(bCalibrate) {
