@@ -22,7 +22,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED â€œAS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -112,7 +112,7 @@ const pTaskEventHandlerFn tasksArr[] = {
 };
 
 const uint8 tasksCnt = sizeof( tasksArr ) / sizeof( tasksArr[0] );
-uint16 *tasksEvents;
+uint16 *tasksEvents = NULL;
 #endif
 
 endPointDesc_t sapi_epDesc;
@@ -202,7 +202,7 @@ void zb_StartRequest()
 /******************************************************************************
  * @fn          zb_BindDevice
  *
- * @brief       The zb_BindDevice function establishes or removes a ‘binding? *              between two devices.  Once bound, an application can send
+ * @brief       The zb_BindDevice function establishes or removes a â€˜binding? *              between two devices.  Once bound, an application can send
  *              messages to a device by referencing the commandId for the
  *              binding.
  *
@@ -217,6 +217,7 @@ void zb_BindDevice ( uint8 create, uint16 commandId, uint8 *pDestination )
 {
   zAddrType_t destination;
   uint8 ret = ZB_ALREADY_IN_PROGRESS;
+  BindingEntry_t *pBind = NULL;
 
   if ( create )
   {
@@ -276,7 +277,7 @@ void zb_BindDevice ( uint8 create, uint16 commandId, uint8 *pDestination )
   else
   {
     // Remove local bindings for the commandId
-    BindingEntry_t *pBind;
+    
 
     // Loop through bindings an remove any that match the cluster
     while ( pBind = bindFind( sapi_epDesc.simpleDesc->EndPoint, commandId, 0 ) )
@@ -487,6 +488,7 @@ uint8 zb_WriteConfiguration( uint8 configId, uint8 len, void *pValue )
  */
 void zb_GetDeviceInfo ( uint8 param, void *pValue )
 {
+  if(pValue){
   switch(param)
   {
     case ZB_INFO_DEV_STATE:
@@ -515,6 +517,8 @@ void zb_GetDeviceInfo ( uint8 param, void *pValue )
       break;
   }
 }
+pValue = NULL;
+}
 
 /******************************************************************************
  * @fn          zb_FindDeviceRequest
@@ -533,7 +537,7 @@ void zb_GetDeviceInfo ( uint8 param, void *pValue )
  */
 void zb_FindDeviceRequest( uint8 searchType, void *searchKey )
 {
-  if (searchType == ZB_IEEE_SEARCH)
+  if ((searchType == ZB_IEEE_SEARCH) && (searchKey))
   {
     ZDP_NwkAddrReq((uint8*) searchKey, ZDP_ADDR_REQTYPE_SINGLE, 0, 0 );
   }
@@ -729,9 +733,9 @@ void SAPI_ReceiveDataIndication( uint16 source, uint16 command, uint16 len, uint
  */
 UINT16 SAPI_ProcessEvent( byte task_id, UINT16 events )
 {
-  osal_event_hdr_t *pMsg;
-  afIncomingMSGPacket_t *pMSGpkt;
-  afDataConfirm_t *pDataConfirm;
+  osal_event_hdr_t *pMsg = NULL;
+  afIncomingMSGPacket_t *pMSGpkt = NULL;
+  afDataConfirm_t *pDataConfirm = NULL;
 
   if ( events & SYS_EVENT_MSG )
   {
@@ -884,24 +888,32 @@ UINT16 SAPI_ProcessEvent( byte task_id, UINT16 events )
  *
  * @return  none
  */
+
+void SAPI_ProcessZDOMsgs( zdoIncomingMsg_t *inMsg )
+{
 #ifdef SYS_DEBUG_SH
 uint16 gBindAddr;
 #endif
-void SAPI_ProcessZDOMsgs( zdoIncomingMsg_t *inMsg )
-{
+  zdoIncomingMsg_t *ZDOMsgs = inMsg;
+  zAddrType_t dstAddr;
+  ZDO_NwkIEEEAddrResp_t *pNwkAddrRsp = NULL;
+  if(ZDOMsgs){
   switch ( inMsg->clusterID )
   {
     case NWK_addr_rsp:
       {
         // Send find device callback to application
-        ZDO_NwkIEEEAddrResp_t *pNwkAddrRsp = ZDO_ParseAddrRsp( inMsg );
+        pNwkAddrRsp = ZDO_ParseAddrRsp( inMsg );
+        if(pNwkAddrRsp){
         SAPI_FindDeviceConfirm( ZB_IEEE_SEARCH, (uint8*)&pNwkAddrRsp->nwkAddr, pNwkAddrRsp->extAddr );
+        }
+        pNwkAddrRsp = NULL;
+        break;
       }
-      break;
+      
 
     case Match_Desc_rsp:
       {
-        zAddrType_t dstAddr;
         ZDO_ActiveEndpointRsp_t *pRsp = ZDO_ParseEPListRsp( inMsg );
 
         if ( sapi_bindInProgress != 0xffff )
@@ -928,14 +940,16 @@ void SAPI_ProcessZDOMsgs( zdoIncomingMsg_t *inMsg )
             sapi_bindInProgress = 0xffff;
           }
         }
-      }
-      break;
+         }
+      
 #ifdef SYS_DEBUG_SH
       case Match_Desc_req:
         gBindAddr = inMsg->srcAddr.addr.shortAddr;
         break;
 #endif
   }
+}
+inMsg =NULL;
 }
 
 /*********************************************************************
@@ -1015,7 +1029,7 @@ void SAPI_Init( byte task_id )
  */
 void SAPI_SendCback( uint8 event, uint8 status, uint16 data )
 {
-  sapi_CbackEvent_t *pMsg;
+  sapi_CbackEvent_t *pMsg = NULL;
 
   pMsg = (sapi_CbackEvent_t *)osal_msg_allocate( sizeof(sapi_CbackEvent_t) );
   if( pMsg )
