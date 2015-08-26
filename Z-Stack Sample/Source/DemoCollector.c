@@ -26,7 +26,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED â€œAS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -648,7 +648,7 @@ static void sysPingRsp(void)
 static void sendGtwReport(gtwData_t *gtwData)
 {
   uint8 pFrame[ZB_RECV_LENGTH];
-  
+  gtwData_t *gtwReportData = gtwData;
   // Start of Frame Delimiter
   pFrame[FRAME_SOF_OFFSET] = CPT_SOP; // Start of Frame Delimiter
   
@@ -658,7 +658,7 @@ static void sendGtwReport(gtwData_t *gtwData)
   // Command type
   pFrame[FRAME_CMD0_OFFSET] = LO_UINT16(ZB_RECEIVE_DATA_INDICATION);   
   pFrame[FRAME_CMD1_OFFSET] = HI_UINT16(ZB_RECEIVE_DATA_INDICATION); 
-  
+  if(gtwReportData){
   // Source address
   pFrame[FRAME_DATA_OFFSET+ ZB_RECV_SRC_OFFSET] = LO_UINT16(gtwData->source); 
   pFrame[FRAME_DATA_OFFSET+ ZB_RECV_SRC_OFFSET+ 1] = HI_UINT16(gtwData->source);
@@ -676,7 +676,11 @@ static void sendGtwReport(gtwData_t *gtwData)
   pFrame[FRAME_DATA_OFFSET+ ZB_RECV_DATA_OFFSET+ 1] = gtwData->voltage; 
   pFrame[FRAME_DATA_OFFSET+ ZB_RECV_DATA_OFFSET+ 2] = LO_UINT16(gtwData->parent); 
   pFrame[FRAME_DATA_OFFSET+ ZB_RECV_DATA_OFFSET+ 3] = HI_UINT16(gtwData->parent);
-  
+  }
+  else
+  {
+    return gtwData;
+  }
   // Frame Check Sequence
   pFrame[ZB_RECV_LENGTH - 1] = calcFCS(&pFrame[FRAME_LENGTH_OFFSET], (ZB_RECV_LENGTH - 2) );
   
@@ -737,12 +741,15 @@ static void sendDummyReport(void)
 static uint8 calcFCS(uint8 *pBuf, uint8 len)
 {
   uint8 rtrn = 0;
-
+  if(pBuf){
   while (len--)
   {
     rtrn ^= *pBuf++;
   }
-
   return rtrn;
+}
+else{
+  rtrn;
+}
 }
 
